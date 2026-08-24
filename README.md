@@ -23,7 +23,7 @@ EVIL TWIN ULTIME est un outil de test de sécurité WiFi qui simule une attaque 
 ```bash
 # 1. Cloner le dépôt
 https://github.com/ronnymboumba1-maker/J4thniel_Evil_twin
-cd evil-twin
+cd J4thniel_Evil_twin
 
 # 2. Créer un environnement virtuel
 python -m venv venv
