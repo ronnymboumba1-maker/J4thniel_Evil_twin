@@ -16,6 +16,41 @@ EVIL TWIN ULTIME est un outil de test de sécurité WiFi qui simule une attaque 
 - ✅ **Interface graphique** : Contrôle complet
 - ✅ **Export des données** : Sauvegarde des mots de passe capturés
 
+📦 INSTALLATION COMPLÈTE
+
+1. Dépendances système (obligatoires)
+
+```bash
+# Ubuntu/Debian/Kali
+sudo apt-get update
+sudo apt-get install -y aircrack-ng iwconfig iptables
+
+# Arch Linux
+sudo pacman -S aircrack-ng iwconfig iptables
+
+# macOS (avec Homebrew)
+brew install aircrack-ng
+```
+
+2. Dépendances Python
+
+```bash
+# Installer les dépendances Python
+pip install -r requirements.txt
+
+# Ou manuellement
+pip install PySide6 requests
+```
+
+3. Vérification
+
+```bash
+# Vérifier que les outils sont installés
+which airbase-ng
+which aireplay-ng
+which iwconfig
+```
+
 ### 🚀 Installation
 
 ```bash
