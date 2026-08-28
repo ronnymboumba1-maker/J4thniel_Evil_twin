@@ -1,0 +1,17 @@
+# ============================================================
+# EVIL TWIN ULTIME - JATHNIEL EDITION
+# Dépendances Python
+# ============================================================
+
+# Interface graphique Qt6
+PySide6>=6.5.0
+
+# Requêtes HTTP (pour les exports)
+requests>=2.31.0
+
+# ============================================================
+# NOTES:
+# - Aucune autre dépendance Python n'est nécessaire
+# - Les outils système aircrack-ng doivent être installés
+# - L'exécution nécessite les privilèges root (sudo)
+# ============================================================
